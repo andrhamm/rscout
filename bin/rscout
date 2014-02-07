@@ -3,16 +3,21 @@
 require 'rubygems'
 require 'thor'
 require 'dotenv'
-require 'exporter'
+require 'rscout'
+require 'byebug'
 
 Dotenv.load
 
 class RscoutCommand < Thor
-  desc 'run', 'Run tests'
-  method_option :suite, type: :string, aliases: [:s], desc: 'The name of the test suite to run.'
+  desc 'test', 'Run tests'
+  method_option :suite, required: :true, type: :string, aliases: [:s], desc: 'The name of the test suite to run.'
+  method_option :env, required: :true, type: :string, aliases: [:e], desc: 'The environment to run the test suite on.'
   method_option :verbose, type: :boolean, aliases: [:v], default: false, lazy_default: true, desc: 'Show verbose messaging.'
-  def run
+  def test
+    RScout.load suites: [ENV['RSCOUT_CONFIG_DIR'], '/suites.yml'].join,
+                envs: [ENV['RSCOUT_CONFIG_DIR'], '/environments.yml'].join
 
+    RScout.run suites: [options.suite], envs: [options.env], verbose: options.verbose
   end
 end
 

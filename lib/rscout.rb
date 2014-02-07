@@ -18,6 +18,14 @@ module RScout
     end
   end
 
+  def self.envs
+    @@ENVS
+  end
+
+  def self.suites
+    @@SUITES
+  end
+
   def self.run(options={}, &block)
     @@ENVS.keep_if {|env_k, env_v| options[:envs] == nil || options[:envs].include?(env_k.to_sym) }.each do |env_name, env_config|
       env_config.name = env_name
@@ -34,7 +42,7 @@ module RScout
           json: StringIO.new,
           stdout: nil,
           results: nil,
-          error: Hashie::Mash.new({backtrace:[],message:nil})
+          error: Hashie::Mash.new({backtrace:[], message:nil})
         })
 
         failed = false
