@@ -6,11 +6,11 @@ require 'rscout/version'
 Gem::Specification.new do |spec|
   spec.name          = "rscout"
   spec.version       = Rscout::VERSION
-  spec.authors       = ["Andrew Hammond"]
+  spec.authors       = ["Andrew Hammond (@andrhamm)"]
   spec.email         = ["andrew@evertrue.com"]
   spec.description   = %q{Integration tests with Rspec}
   spec.summary       = %q{Integration tests with Rspec}
-  spec.homepage      = ""
+  spec.homepage      = "https://github.com/andrhamm"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)
@@ -21,6 +21,13 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'json'
   spec.add_dependency 'dotenv-rails'
   spec.add_dependency 'thor'
+  spec.add_dependency 'rspec'
+  spec.add_dependency 'json'
+  spec.add_dependency 'dotenv'
+  spec.add_dependency 'hashie'
+  spec.add_dependency 'pagerduty'
+  spec.add_dependency 'syntax'
+  spec.add_dependency 'mail'
 
   spec.add_development_dependency "bundler", "~> 1.3"
   spec.add_development_dependency "rake"
