@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'thor'
+require 'dotenv'
+require 'exporter'
+
+Dotenv.load
+
+class RscoutCommand < Thor
+  desc 'run', 'Run tests'
+  method_option :suite, type: :string, aliases: [:s], desc: 'The name of the test suite to run.'
+  method_option :verbose, type: :boolean, aliases: [:v], default: false, lazy_default: true, desc: 'Show verbose messaging.'
+  def run
+
+  end
+end
+
+RscoutCommand.start
