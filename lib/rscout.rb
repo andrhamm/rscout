@@ -1,39 +1,86 @@
-require "rscout/version"
-require "dotenv"
-require "yaml"
-require "hashie"
-require "pagerduty"
-require "mail"
+require 'rscout/version'
+require 'dotenv'
+require 'yaml'
+require 'hashie'
+require 'pagerduty'
+require 'mail'
+require 'logger'
+
+require 'rspec'
+require 'rspec/core'
+require 'rspec/core/formatters/json_formatter'
+require 'rspec/core/formatters/documentation_formatter'
+require 'rspec/core/formatters/html_formatter'
+require 'rspec/autorun'
 
 module RScout
+  def self.logger
+    @@LOGGER ||= begin
+      logger = Logger.new STDOUT
+      logger.level = Logger::ERROR
+      logger
+    end
+  end
+
   def self.load(options={})
     Dotenv.load
 
     @@ENVS ||= begin
-      options[:envs] ? Hashie::Mash.new(YAML.load_file(options[:envs])) : []
+      envs = options[:envs] ? Hashie::Mash.new(YAML.load_file(options[:envs])) : []
+
+      raise "No environments found." unless envs.keys
+
+      envs
     end
 
     @@SUITES ||= begin
-      options[:suites] ? Hashie::Mash.new(YAML.load_file(options[:suites])) : []
+      suites = options[:suites] ? Hashie::Mash.new(YAML.load_file(options[:suites])) : []
+
+      raise "No suites found." unless suites.keys
+
+      suites
     end
   end
 
-  def self.envs
-    @@ENVS
+  def self.envs(env_names=nil)
+    if env_names
+      envs = {}
+      env_names.each do |env_name|
+        raise "Unknown environment '#{env_name}'." unless @@ENVS[env_name]
+        envs[env_name] = @@ENVS[env_name]
+      end
+      envs
+    else
+      @@ENVS
+    end
   end
 
-  def self.suites
-    @@SUITES
+  def self.suites(suite_names=nil)
+    if suite_names
+      suites = {}
+      suite_names.each do |suite_name|
+        raise "Unknown suite '#{suite_name}'." unless @@SUITES[suite_name]
+        suites[suite_name] = @@SUITES[suite_name]
+      end
+      suites
+    else
+      @@SUITES
+    end
   end
 
   def self.run(options={}, &block)
-    @@ENVS.keep_if {|env_k, env_v| options[:envs] == nil || options[:envs].include?(env_k.to_sym) }.each do |env_name, env_config|
+    verbose = options[:verbose] || false
+    RScout.logger.level = verbose ? Logger::DEBUG : Logger::ERROR
+    logger.debug "Running…"
+    RScout.envs(options[:envs].map(&:to_sym)).each do |env_name, env_config|
+      RScout.logger.debug "Running tests for #{env_name}…"
       env_config.name = env_name
       $target_env = env_config
-      @@SUITES.keep_if {|suite_k, suite_v| options[:suites] == nil || options[:suites].include?(suite_k.to_sym) }.each do |suite_name, suite_config|
+      RScout.suites(options[:suites].map(&:to_sym)).each do |suite_name, suite_config|
         suite_config.name = suite_name
         $target_suite = suite_config
-        puts "#{env_name} .. #{suite_name}"
+        RScout.logger.debug "Running tests for #{suite_name} on #{env_name}…"
+
         yield if block_given?
 
         output = Hashie::Mash.new({
@@ -58,7 +105,7 @@ module RScout
 
           rspec_task = lambda { RSpec::Core::Runner.run(Dir["#{ENV['RSCOUT_SUITE_DIR']}/#{suite_name}/*.rb"]) }
 
-          if options[:verbose]
+          if verbose
             rspec_task.call
           else
             output.stdout = RScout.capture_stdout &rspec_task
@@ -70,7 +117,8 @@ module RScout
           failure_count = output.results[:summary][:failure_count].to_s
         rescue => e
           failed = true
-          puts "Exception encountered while running RSpec: #{e.message}", e.backtrace
+          RScout.logger.error "Exception encountered while running RSpec: #{e.message}"
+          RScout.logger.error e.backtrace
           output.error = e
         ensure
           output.txt.close unless output.txt.closed?
@@ -79,40 +127,43 @@ module RScout
         end
 
         if failed
-          puts "Tests failed."
-          RScout.handle_failure env_config, suite_config, output
+          RScout.logger.info "Tests failed."
+          RScout.send_failure_notifications env_config, suite_config, output
         end
       end
     end
+  rescue => e
+    RScout.logger.fatal e.message
   end
 
-  def self.handle_failure(env, suite, output)
+  def self.send_failure_notifications(env, suite, output)
     email_body = [output.txt_string, output.error.backtrace.join("\n")].join("\n")
     if env.email_enabled && suite.email
-      puts "Sending emails alert to #{suite.email}"
+      RScout.logger.info "Sending emails alert to #{suite.email}"
       begin
         mail = Mail.new do
            from     'Scout <platform+scout@evertrue.com>'
            to       suite.email
-           subject  "Scout Alert: Tests failing on #{suite.name.humanize.titleize} (#{env.name.capitalize})"
+           subject  "Scout Alert: Tests failing on #{suite.name.to_s.humanize.titleize} (#{env.name.capitalize})"
            body     email_body
            add_file filename: 'results.html', content: output.html.string
         end
 
         mail.deliver!
       rescue => e
-        puts "Failed to send email alert!", e.message, e.backtrace
+        RScout.logger.error "Failed to send email alert!"
+        RScout.logger.error e.message + "\n " + e.backtrace.join("\n ")
       end
     end
 
     if env.pagerduty_enabled && suite.pagerduty_service_key
-      puts "Triggering PagerDuty incident to #{suite.pagerduty_service_key}"
+      RScout.logger.info "Triggering PagerDuty incident to #{suite.pagerduty_service_key}"
       begin
         if suite.pagerduty_service_key.match(/@(.*)pagerduty.com$/)
           mail = Mail.new do
              from    'RScout <platform+rscout@evertrue.com>'
              to      suite.pagerduty_service_key
-             subject "DOWN alert: RScout tests failing on #{suite.name.humanize.titleize} (#{env.name.capitalize})"
+             subject "DOWN alert: RScout tests failing on #{suite.name.to_s.humanize.titleize} (#{env.name.capitalize})"
              body    email_body
           end
 
@@ -122,18 +173,19 @@ module RScout
           incident = p.trigger 'RScout tests failing!', output.results
         end
       rescue => e
-        puts "Failed to send PagerDuty alert!", e.message, e.backtrace
+        RScout.logger.error "Failed to send PagerDuty alert!"
+        RScout.logger.error e.message + "\n " + e.backtrace.join("\n ")
       end
     end
   end
 
   def self.capture_stdout(&block)
-    puts "starting stdout capture..."
+    RScout.logger.debug "Starting stdout capture…"
     previous_stdout, $stdout = $stdout, StringIO.new
     yield
     $stdout.string
   ensure
     $stdout = previous_stdout
-    puts "ended stdout capture."
+    RScout.logger.debug "Ended stdout capture."
   end
 end
