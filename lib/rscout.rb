@@ -5,13 +5,13 @@ require 'hashie'
 require 'pagerduty'
 require 'mail'
 require 'logger'
+require 'active_support/core_ext/string'
 
 require 'rspec'
 require 'rspec/core'
 require 'rspec/core/formatters/json_formatter'
 require 'rspec/core/formatters/documentation_formatter'
 require 'rspec/core/formatters/html_formatter'
-require 'rspec/autorun'
 
 module RScout
   def self.logger
@@ -101,6 +101,7 @@ module RScout
           reporter = RSpec::Core::Reporter.new(json_formatter, txt_formatter, html_formatter)
 
           rspec = RSpec.configuration
+          # RSpec::Core::Runner.disable_autorun!
           rspec.instance_variable_set(:@reporter, reporter)
 
           rspec_task = lambda { RSpec::Core::Runner.run(Dir["#{ENV['RSCOUT_SUITE_DIR']}/#{suite_name}/*.rb"]) }
@@ -137,16 +138,23 @@ module RScout
   end
 
   def self.send_failure_notifications(env, suite, output)
-    email_body = [output.txt_string, output.error.backtrace.join("\n")].join("\n")
+    email_body = [output.txt.string, output.error.backtrace.join("\n")].join("\n")
     if env.email_enabled && suite.email
       RScout.logger.info "Sending emails alert to #{suite.email}"
       begin
         mail = Mail.new do
-           from     'Scout <platform+scout@evertrue.com>'
-           to       suite.email
-           subject  "Scout Alert: Tests failing on #{suite.name.to_s.humanize.titleize} (#{env.name.capitalize})"
-           body     email_body
-           add_file filename: 'results.html', content: output.html.string
+          from     'Scout <platform+scout@evertrue.com>'
+          to       suite.email
+          subject  "Scout Alert: Tests failing on #{suite.name.to_s.humanize.titleize} (#{env.name.downcase})"
+          add_file filename: 'results.html', content: output.html.string
+
+          header["X-Priority"] = "1 (Highest)"
+          header["X-MSMail-Priority"] = "High"
+          header["Importance"] = "High"
+
+          text_part do
+            body email_body
+          end
         end
 
         mail.deliver!
@@ -163,7 +171,7 @@ module RScout
           mail = Mail.new do
              from    'RScout <platform+rscout@evertrue.com>'
              to      suite.pagerduty_service_key
-             subject "DOWN alert: RScout tests failing on #{suite.name.to_s.humanize.titleize} (#{env.name.capitalize})"
+             subject "DOWN alert: RScout tests failing on #{suite.name.to_s.humanize.titleize} (#{env.name.downcase})"
              body    email_body
           end
 

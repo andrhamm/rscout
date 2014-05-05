@@ -4,7 +4,7 @@ require 'rubygems'
 require 'thor'
 require 'dotenv'
 require 'rscout'
-require 'byebug'
+require 'mail'
 
 Dotenv.load
 
@@ -14,6 +14,10 @@ class RscoutCommand < Thor
   method_option :env, required: :true, type: :string, aliases: [:e], desc: 'The environment to run the test suite on.'
   method_option :verbose, type: :boolean, aliases: [:v], default: false, lazy_default: true, desc: 'Show verbose messaging.'
   def test
+    Mail.defaults do
+      delivery_method :smtp, address: ENV['SMTP_HOST'], port: ENV['SMTP_PORT']
+    end
+
     RScout.load suites: [ENV['RSCOUT_CONFIG_DIR'], '/suites.yml'].join,
                 envs: [ENV['RSCOUT_CONFIG_DIR'], '/environments.yml'].join
 
