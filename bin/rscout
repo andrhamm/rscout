@@ -10,18 +10,25 @@ Dotenv.load
 
 class RscoutCommand < Thor
   desc 'test', 'Run tests'
-  method_option :suite, required: :true, type: :string, aliases: [:s], desc: 'The name of the test suite to run.'
+  # method_option :suite, required: :true, type: :string, aliases: [:s], desc: 'The name of the test suite to run.'
   method_option :env, required: :true, type: :string, aliases: [:e], desc: 'The environment to run the test suite on.'
   method_option :verbose, type: :boolean, aliases: [:v], default: false, lazy_default: true, desc: 'Show verbose messaging.'
   def test
     Mail.defaults do
-      delivery_method :smtp, address: ENV['SMTP_HOST'], port: ENV['SMTP_PORT']
+      smtp = {}
+
+      smtp[:user_name] = ENV['SMTP_USERNAME'] if ENV['SMTP_USERNAME']
+      smtp[:password] = ENV['SMTP_PASSWORD'] if ENV['SMTP_PASSWORD']
+      smtp[:domain] = ENV['SMTP_DOMAIN'] if ENV['SMTP_DOMAIN']
+      smtp[:address] = ENV['SMTP_ADDRESS'] if ENV['SMTP_ADDRESS']
+      smtp[:port] = ENV['SMTP_PORT'] if ENV['SMTP_PORT']
+      smtp[:authentication] = ENV['SMTP_AUTHENTICATION'] if ENV['SMTP_AUTHENTICATION']
+      smtp[:enable_starttls_auto] = ENV['SMTP_ENABLESTARTTLS_AUTO'] if ENV['SMTP_ENABLESTARTTLS_AUTO']
+
+      delivery_method :smtp, smtp
     end
 
-    RScout.load suites: [ENV['RSCOUT_CONFIG_DIR'], '/suites.yml'].join,
-                envs: [ENV['RSCOUT_CONFIG_DIR'], '/environments.yml'].join
-
-    RScout.run suites: [options.suite], envs: [options.env], verbose: options.verbose
+    RScout.run_suite Dir.pwd, options.env
   end
 end
 
