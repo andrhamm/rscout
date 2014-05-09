@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.name          = "rscout"
   spec.version       = Rscout::VERSION
   spec.authors       = ["Andrew Hammond (@andrhamm)"]
-  spec.email         = ["andrew@evertrue.com"]
+  spec.email         = ["andrew@tremorlab.com"]
   spec.description   = %q{Integration tests with Rspec}
   spec.summary       = %q{Integration tests with Rspec}
   spec.homepage      = "https://github.com/andrhamm"

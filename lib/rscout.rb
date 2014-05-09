@@ -13,22 +13,6 @@ require 'rspec/core/formatters/documentation_formatter'
 require 'rspec/core/formatters/html_formatter'
 
 module RScout
-  # DEFAULT_LOGGER  = Logger.new($stdout)
-  # DEFAULT_OPTIONS = {
-  #   logger: DEFAULT_LOGGER,
-  #   severity: Logger::Severity::DEBUG
-  # }
-
-  # class << self
-  #   def options
-  #     @@options ||= DEFAULT_OPTIONS.clone
-  #   end
-
-  #   def log(msg)
-  #     options[:logger].add(options[:severity]) { msg }
-  #   end
-  # end
-
   def self.logger
     @@LOGGER ||= begin
       logger = Logger.new STDOUT
@@ -41,7 +25,6 @@ module RScout
     verbose = false
     gemfile = File.join(dir, 'Gemfile')
     configfile = File.join(dir, 'config', 'rscout.yml')
-    dotfile = File.join(dir, '.env')
 
     Bundler.with_clean_env do
       Dir.chdir(dir) do
@@ -66,7 +49,6 @@ module RScout
           reporter = RSpec::Core::Reporter.new(json_formatter, txt_formatter, html_formatter)
 
           rspec = RSpec.configuration
-          # RSpec::Core::Runner.disable_autorun!
           rspec.instance_variable_set(:@reporter, reporter)
 
           tests = Dir.glob File.join(dir, 'spec/**/*_spec.rb')
