@@ -10,7 +10,6 @@ Dotenv.load
 
 class RscoutCommand < Thor
   desc 'test', 'Run tests'
-  # method_option :suite, required: :true, type: :string, aliases: [:s], desc: 'The name of the test suite to run.'
   method_option :env, required: :true, type: :string, aliases: [:e], desc: 'The environment to run the test suite on.'
   method_option :verbose, type: :boolean, aliases: [:v], default: false, lazy_default: true, desc: 'Show verbose messaging.'
   def test
