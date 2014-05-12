@@ -3,6 +3,7 @@
 require 'rubygems'
 require 'thor'
 require 'dotenv'
+require 'logger'
 require 'rscout'
 require 'mail'
 
@@ -27,6 +28,7 @@ class RscoutCommand < Thor
       delivery_method :smtp, smtp
     end
 
+    RScout.logger = Logger.new(ENV['RSCOUT_LOG']) if ENV['RSCOUT_LOG']
     RScout.run_suite Dir.pwd, options.env
   end
 end
