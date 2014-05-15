@@ -100,6 +100,7 @@ module RScout
           failed
         end
       end
+    end
 
     def send_failure_notifications(config, env, output)
       email_body = [output.txt.string, output.error.backtrace.join("\n")].join("\n")
