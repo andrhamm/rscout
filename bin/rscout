@@ -15,8 +15,6 @@ class RscoutCommand < Thor
   method_option :verbose, type: :boolean, aliases: [:v], default: false, lazy_default: true, desc: 'Show verbose messaging.'
   def test
     Mail.defaults do
-      from ENV['RSCOUT_EMAIL']
-
       smtp = {}
 
       smtp[:user_name] = ENV['SMTP_USERNAME'] if ENV['SMTP_USERNAME']
@@ -33,6 +31,7 @@ class RscoutCommand < Thor
     RScout.options[:logger] = Logger.new(ENV['RSCOUT_LOG']) if ENV['RSCOUT_LOG']
     RScout.options[:env] = options.env
     RScout.options[:verbose] = options.verbose
+    RScout.options[:from_email] = ENV['RSCOUT_EMAIL'] if ENV['RSCOUT_EMAIL']
 
     RScout.run_suite Dir.pwd
   end

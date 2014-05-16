@@ -17,7 +17,8 @@ module RScout
   DEFAULT_OPTIONS = {
     logger: DEFAULT_LOGGER,
     verbose: false,
-    env: 'development'
+    env: 'development',
+    from_email: 'rscout@localhost'
   }
 
   class << self
@@ -108,6 +109,7 @@ module RScout
         logger.info "Sending emails alert to #{config.email}"
         begin
           mail = Mail.new do
+            from     options[:from_email]
             to       config.email
             subject  "RScout Alert: Tests failing on #{config.name.to_s.humanize.titleize} (#{env})"
             add_file filename: 'results.html', content: output.html.string
@@ -133,6 +135,7 @@ module RScout
         begin
           if config.pagerduty_service_key.match(/@(.*)pagerduty.com$/)
             mail = Mail.new do
+               from    options[:from_email]
                to      config.pagerduty_service_key
                subject "DOWN alert: RScout tests failing on #{config.name.to_s.humanize.titleize} (#{env})"
                body    email_body
