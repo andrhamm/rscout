@@ -156,7 +156,12 @@ module RScout
     def capture_stdout(&block)
       previous_stdout, $stdout = $stdout, StringIO.new
       yield
-      $stdout.string
+      if $stdout.respond_to?(:string)
+        $stdout.string
+      else
+        logger.warn "Test suite hijacked our STDOUT capture."
+        nil
+      end
     ensure
       $stdout = previous_stdout
     end
