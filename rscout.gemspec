@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["andrew@tremorlab.com"]
   spec.description   = %q{Integration tests with Rspec}
   spec.summary       = %q{Integration tests with Rspec}
-  spec.homepage      = "https://github.com/andrhamm"
+  spec.homepage      = "https://github.com/andrhamm/rscout"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)

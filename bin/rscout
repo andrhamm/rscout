@@ -12,6 +12,7 @@ Dotenv.load
 class RscoutCommand < Thor
   desc 'test', 'Run tests'
   method_option :env, required: :true, type: :string, aliases: [:e], desc: 'The environment to run the test suite on.'
+  method_option :send_success, type: :boolean, aliases: [:s], default: false, lazy_default: true, desc: 'Send notifications even without any test failures.'
   method_option :verbose, type: :boolean, aliases: [:v], default: false, lazy_default: true, desc: 'Show verbose messaging.'
   def test
     Mail.defaults do
@@ -32,6 +33,7 @@ class RscoutCommand < Thor
     RScout.options[:env] = options.env
     RScout.options[:verbose] = options.verbose
     RScout.options[:from_email] = ENV['RSCOUT_EMAIL'] if ENV['RSCOUT_EMAIL']
+    RScout.options[:send_success] = options.send_success
 
     RScout.run_suite Dir.pwd
   end

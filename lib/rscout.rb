@@ -18,7 +18,8 @@ module RScout
     logger: DEFAULT_LOGGER,
     verbose: false,
     env: 'development',
-    from_email: 'rscout@localhost'
+    from_email: 'rscout@localhost',
+    send_success: false
   }
 
   class << self
@@ -93,9 +94,9 @@ module RScout
             output.json.close unless output.json.closed?
           end
 
-          if failed
-            logger.info "Tests failed."
-            send_failure_notifications config, env, output
+          if failed || options[:send_success]
+            logger.info (failed ? "Tests failed." : "Tests passed.")
+            send_notifications config, env, output, failed
           end
 
           failed
@@ -103,24 +104,31 @@ module RScout
       end
     end
 
-    def send_failure_notifications(config, env, output)
-      email_body = [output.txt.string, output.error.backtrace.join("\n")].join("\n")
+    def send_notifications(config, env, output, failed=false)
+      email_body_parts = []
+      email_body_parts << output.txt.string if output.txt && output.txt.respond_to?(:string)
+      email_body_parts << output.error.backtrace.join("\n") if output.error.backtrace
+      email_body = email_body_parts.join("\n\n")
+
       if config.email_enabled && config.email
-        logger.info "Sending emails alert to #{config.email}"
+        logger.info "Sending email alert to #{config.email}"
+
+        status_text = failed ? "RSout Alert: Tests failing" : "RScout: All tests passing"
+
         begin
           mail = Mail.new do
             from     RScout.options[:from_email]
             to       config.email
-            subject  "RScout Alert: Tests failing on #{config.name.to_s.humanize.titleize} (#{env})"
+            subject  "#{status_text} on #{config.name.to_s.humanize.titleize} (#{env})"
             add_file filename: 'results.html', content: output.html.string
 
-            header["X-Priority"] = "1 (Highest)"
-            header["X-MSMail-Priority"] = "High"
-            header["Importance"] = "High"
-
-            text_part do
-              body email_body
+            if failed
+              header["X-Priority"] = "1 (Highest)"
+              header["X-MSMail-Priority"] = "High"
+              header["Importance"] = "High"
             end
+
+            body email_body
           end
 
           mail.deliver!
@@ -130,7 +138,7 @@ module RScout
         end
       end
 
-      if config.pagerduty_enabled && config.pagerduty_service_key
+      if failed && config.pagerduty_enabled && config.pagerduty_service_key
         logger.info "Triggering PagerDuty incident to #{config.pagerduty_service_key}"
         begin
           if config.pagerduty_service_key.match(/@(.*)pagerduty.com$/)

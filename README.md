@@ -69,9 +69,21 @@ Note: For PagerDuty configurations, you should use their REST API to determine t
 The `rscout` command should be run from the directory where you keep your RScout test Gemfile. See Configuration section above.
 
     $ cd myproject
-    $ SMTP_ADDRESS=localhost SMTP_PORT=1025 bundle exec rscout test --env production`
+    $ RSCOUT_LOG=/path/to/rscout.log RSCOUT_EMAIL=rscout_from@example.com SMTP_ADDRESS=localhost SMTP_PORT=1025 bundle exec rscout test --env production`
 
-Supply the rscout command with the necessary SMTP ENV keys if applicable.
+Supply the rscout command with the necessary ENV keys if applicable.
+
+For documentation, run `rscout --help`, which outputs:
+
+```
+Usage:
+  rscout test e, --env=ENV
+
+Options:
+  e, --env=ENV                              # The environment to run the test suite on.
+  s, [--send-success], [--no-send-success]  # Send notifications even without any test failures.
+  v, [--verbose], [--no-verbose]            # Show verbose messaging.
+```
 
 ## TODO
 
